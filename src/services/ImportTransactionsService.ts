@@ -11,9 +11,6 @@ interface TransactionCSV{
   value: number;
   category: string;
 }
-interface CategoryCSV{
-  title: string;
-}
 
 class ImportTransactionsService {
    async execute(path:string): Promise<Transaction[]>{
@@ -28,18 +25,16 @@ class ImportTransactionsService {
     })
     const parseCSV = readCSV.pipe(parseStream)
     
-    const categories: any[]= []
+    const categories: string[]= []
     const transactions: TransactionCSV[] = []
 
-    parseCSV.on('data', (line:string[])=>{
-      console.log(line);
-      const [title, type, value, category] = line.map((el)=> (
+    parseCSV.on('data', line=>{
+      const [title, type, value, category] = line.map((el:string)=> (
         el.trim()
         ))
-      const transaction = {title, type, value:Number(value), category}
-      if(!title || !type || !value) return
-      transactions.push(transaction)
-      categories.push(category)
+        if(!title || !type || !value) return
+        transactions.push({title, type, value, category})//essa transaction  possui type como string
+        categories.push(category)
     })
     await new Promise(resolve=>{
       parseCSV.on('end' ,resolve)
@@ -75,6 +70,7 @@ class ImportTransactionsService {
                 type: transaction.type,
                 category: allCategories.find(elem=> elem.title ==transaction.category)
               })))
+
     await transactionRepository.save(newTransactions)
     await fs.promises.unlink(path)
     return newTransactions
